@@ -1085,4 +1085,20 @@ describe("Transform", () => {
       ist(r(tr), "1-4")
     })
   })
+
+  it("drops steps that produce invalid content", () => {
+    let schema = new Schema({nodes: {
+      doc: {content: "block+"},
+      paragraph: {group: "block", content: "inline*"},
+      heading: {group: "block", content: "text*"},
+      special: {group: "inline", inline: true},
+      text: {group: "inline"},
+    }})
+    let doc = schema.node("doc", null, [schema.node("paragraph", null, [schema.text("abc")])])
+
+    let tr1 = new Transform(doc).insert(2, schema.node("special"))
+    let tr2 = new Transform(doc).setBlockType(1, 4, schema.nodes.heading)
+    tr2.maybeStep(tr1.steps[0].map(tr2.mapping)!)
+    ist(tr2.steps.length, 1)
+  })
 })
