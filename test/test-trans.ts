@@ -812,6 +812,17 @@ describe("Transform", () => {
       ist(new Transform(doc).replace(2, 3, new Slice(iso, 2, 2)).doc,
           s.node("doc", null, [s.node("paragraph", null, [s.text("otwoe")])]), eq)
     })
+
+    it("won't try to open a leaf node", () => {
+      let schema = new Schema({nodes: {
+        doc: {content: "block"},
+        paragraph: {content: "inline*", group: "block"},
+        text: {group: "inline"},
+      }})
+      let tr = new Transform(schema.node("doc", null, [schema.node("paragraph")]))
+      tr.replace(1, 1, new Slice(Fragment.from([schema.node("paragraph"), schema.text("xy")]), 0, 0))
+      ist(tr.doc, tr.docs[0], eq)
+    })
   })
 
   describe("replaceRange", () => {
