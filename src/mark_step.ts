@@ -42,9 +42,9 @@ export class AddMarkStep extends Step {
   }
 
   map(mapping: Mappable): Step | null {
-    let from = mapping.mapResult(this.from, 1), to = mapping.mapResult(this.to, -1)
-    if (from.deleted && to.deleted || from.pos >= to.pos) return null
-    return new AddMarkStep(from.pos, to.pos, this.mark)
+    let from = mapping.map(this.from, 1), to = mapping.map(this.to, -1)
+    if (from >= to) return null
+    return new AddMarkStep(from, to, this.mark)
   }
 
   merge(other: Step): Step | null {
@@ -98,9 +98,9 @@ export class RemoveMarkStep extends Step {
   }
 
   map(mapping: Mappable): Step | null {
-    let from = mapping.mapResult(this.from, 1), to = mapping.mapResult(this.to, -1)
-    if (from.deleted && to.deleted || from.pos >= to.pos) return null
-    return new RemoveMarkStep(from.pos, to.pos, this.mark)
+    let from = mapping.map(this.from, 1), to = mapping.map(this.to, -1)
+    if (from >= to) return null
+    return new RemoveMarkStep(from, to, this.mark)
   }
 
   merge(other: Step): Step | null {
