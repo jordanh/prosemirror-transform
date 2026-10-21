@@ -28,6 +28,7 @@ export class AddMarkStep extends Step {
   }
 
   apply(doc: Node) {
+    if (this.from == this.to) return new StepResult(doc, null)
     let oldSlice = doc.slice(this.from, this.to), $from = doc.resolve(this.from)
     let parent = $from.node($from.sharedDepth(this.to))
     let slice = new Slice(mapFragment(oldSlice.content, (node, parent) => {
@@ -37,8 +38,21 @@ export class AddMarkStep extends Step {
     return StepResult.fromReplace(doc, this.from, this.to, slice)
   }
 
-  invert(): Step {
-    return new RemoveMarkStep(this.from, this.to, this.mark)
+  invert(doc: Node): Step {
+    let steps: (RemoveMarkStep | AddMarkStep)[] = []
+    doc.nodesBetween(this.from, this.to, (node, pos) => {
+      if (node.isInline && node.isAtom) {
+        let added = this.mark.addToSet(node.marks)
+        if (!Mark.sameSet(added, node.marks)) {
+          let from = Math.max(this.from, pos), to = Math.min(this.to, pos + node.nodeSize)
+          steps.push(new RemoveMarkStep(from, to, this.mark))
+          for (let mark of node.marks) if (!mark.isInSet(added))
+            steps.push(new AddMarkStep(from, to, mark))
+        }
+      }
+    })
+    return steps.length == 0 ? new RemoveMarkStep(this.from, this.from, this.mark)
+      : steps.length == 1 ? steps[0] : new MarkSetStep(steps)
   }
 
   map(mapping: Mappable): Step | null {
@@ -86,6 +100,7 @@ export class RemoveMarkStep extends Step {
   }
 
   apply(doc: Node) {
+    if (this.from == this.to) return new StepResult(doc, null)
     let oldSlice = doc.slice(this.from, this.to)
     let slice = new Slice(mapFragment(oldSlice.content, node => {
       return node.mark(this.mark.removeFromSet(node.marks))
@@ -93,8 +108,14 @@ export class RemoveMarkStep extends Step {
     return StepResult.fromReplace(doc, this.from, this.to, slice)
   }
 
-  invert(): Step {
-    return new AddMarkStep(this.from, this.to, this.mark)
+  invert(doc: Node): Step {
+    let steps: AddMarkStep[] = []
+    doc.nodesBetween(this.from, this.to, (node, pos) => {
+      if (node.isInline && node.isAtom && this.mark.isInSet(node.marks))
+        steps.push(new AddMarkStep(Math.max(this.from, pos), Math.min(this.to, pos + node.nodeSize), this.mark))
+    })
+    return steps.length == 0 ? new AddMarkStep(this.from, this.from, this.mark)
+      : steps.length == 1 ? steps[0] : new MarkSetStep(steps)
   }
 
   map(mapping: Mappable): Step | null {
@@ -126,6 +147,48 @@ export class RemoveMarkStep extends Step {
 }
 
 Step.jsonID("removeMark", RemoveMarkStep)
+
+class MarkSetStep extends Step {
+  constructor(
+    readonly steps: readonly (AddMarkStep | RemoveMarkStep)[]
+  ) {
+    super()
+  }
+
+  apply(doc: Node) {
+    for (let step of this.steps) {
+      let result = step.apply(doc)
+      if (!result.doc) return result
+      doc = result.doc
+    }
+    return new StepResult(doc, null)
+  }
+
+  invert(doc: Node): Step {
+    return new MarkSetStep(this.steps.map(s => s.invert(doc) as AddMarkStep | RemoveMarkStep))
+  }
+
+  map(mapping: Mappable) {
+    let result: (AddMarkStep | RemoveMarkStep)[] = []
+    for (let step of this.steps) {
+      let mapped = step.map(mapping)
+      if (mapped) result.push(mapped as AddMarkStep | RemoveMarkStep)
+    }
+    return result.length ? new MarkSetStep(result) : null
+  }
+
+  toJSON() {
+    return {stepType: "markSet", steps: this.steps.map(s => s.toJSON())}
+  }
+
+  fromJSON(schema: Schema, json: any) {
+    if (!Array.isArray(json.steps) || !json.steps.every((s: any) => s.stepType == "addMark" || s.stepType == "removeMark"))
+      throw new RangeError("Invalid JSON for MarkSetStep")
+    return new MarkSetStep(json.steps.map((s: any) => Step.fromJSON(schema, s)))
+  }
+}
+
+Step.jsonID("markSet", MarkSetStep)
 
 /// Add a mark to a specific node.
 export class AddNodeMarkStep extends Step {
