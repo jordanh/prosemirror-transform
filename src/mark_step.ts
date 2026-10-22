@@ -189,7 +189,7 @@ class MarkSetStep extends Step {
     return {stepType: "markSet", steps: this.steps.map(s => s.toJSON())}
   }
 
-  fromJSON(schema: Schema, json: any) {
+  static fromJSON(schema: Schema, json: any) {
     if (!Array.isArray(json.steps) || !json.steps.every((s: any) => s.stepType == "addMark" || s.stepType == "removeMark"))
       throw new RangeError("Invalid JSON for MarkSetStep")
     return new MarkSetStep(json.steps.map((s: any) => Step.fromJSON(schema, s)))
