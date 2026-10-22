@@ -2,18 +2,17 @@ import {Mark, MarkType, Slice, Fragment, NodeType} from "prosemirror-model"
 
 import {Step} from "./step"
 import {Transform} from "./transform"
-import {AddMarkStep, RemoveMarkStep} from "./mark_step"
+import {AddMarkStep, RemoveMarkStep, pushMarkStep} from "./mark_step"
 import {ReplaceStep} from "./replace_step"
 
 export function addMark(tr: Transform, from: number, to: number, mark: Mark) {
-  let added: Step[] = [], adding: AddMarkStep | undefined
+  let added: AddMarkStep[] = []
   tr.doc.nodesBetween(from, to, (node, pos, parent) => {
     if (!node.isInline) return
     let marks = node.marks
     if (!mark.isInSet(marks) && parent!.type.allowsMarkType(mark.type)) {
       let start = Math.max(pos, from), end = Math.min(pos + node.nodeSize, to)
-      if (adding && adding.to == start) (adding as any).to = end
-      else added.push(adding = new AddMarkStep(start, end, mark))
+      pushMarkStep(AddMarkStep, start, end, mark, added)
     }
   })
   added.forEach(s => tr.step(s))

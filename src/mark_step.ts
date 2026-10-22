@@ -28,7 +28,6 @@ export class AddMarkStep extends Step {
   }
 
   apply(doc: Node) {
-    if (this.from == this.to) return new StepResult(doc, null)
     let oldSlice = doc.slice(this.from, this.to), $from = doc.resolve(this.from)
     let parent = $from.node($from.sharedDepth(this.to))
     let slice = new Slice(mapFragment(oldSlice.content, (node, parent) => {
@@ -45,14 +44,13 @@ export class AddMarkStep extends Step {
         let added = this.mark.addToSet(node.marks)
         if (!Mark.sameSet(added, node.marks)) {
           let from = Math.max(this.from, pos), to = Math.min(this.to, pos + node.nodeSize)
-          steps.push(new RemoveMarkStep(from, to, this.mark))
+          pushMarkStep(RemoveMarkStep, from, to, this.mark, steps)
           for (let mark of node.marks) if (!mark.isInSet(added))
-            steps.push(new AddMarkStep(from, to, mark))
+            pushMarkStep(AddMarkStep, from, to, mark, steps)
         }
       }
     })
-    return steps.length == 0 ? new RemoveMarkStep(this.from, this.from, this.mark)
-      : steps.length == 1 ? steps[0] : new MarkSetStep(steps)
+    return steps.length == 1 ? steps[0] : new MarkSetStep(steps)
   }
 
   map(mapping: Mappable): Step | null {
@@ -100,7 +98,6 @@ export class RemoveMarkStep extends Step {
   }
 
   apply(doc: Node) {
-    if (this.from == this.to) return new StepResult(doc, null)
     let oldSlice = doc.slice(this.from, this.to)
     let slice = new Slice(mapFragment(oldSlice.content, node => {
       return node.mark(this.mark.removeFromSet(node.marks))
@@ -109,13 +106,12 @@ export class RemoveMarkStep extends Step {
   }
 
   invert(doc: Node): Step {
-    let steps: AddMarkStep[] = []
+    let steps: (AddMarkStep | RemoveMarkStep)[] = []
     doc.nodesBetween(this.from, this.to, (node, pos) => {
       if (node.isInline && node.isAtom && this.mark.isInSet(node.marks))
-        steps.push(new AddMarkStep(Math.max(this.from, pos), Math.min(this.to, pos + node.nodeSize), this.mark))
+        pushMarkStep(AddMarkStep, Math.max(this.from, pos), Math.min(this.to, pos + node.nodeSize), this.mark, steps)
     })
-    return steps.length == 0 ? new AddMarkStep(this.from, this.from, this.mark)
-      : steps.length == 1 ? steps[0] : new MarkSetStep(steps)
+    return steps.length == 1 ? steps[0] : new MarkSetStep(steps)
   }
 
   map(mapping: Mappable): Step | null {
@@ -147,6 +143,18 @@ export class RemoveMarkStep extends Step {
 }
 
 Step.jsonID("removeMark", RemoveMarkStep)
+
+export function pushMarkStep(
+  cls: typeof AddMarkStep | typeof RemoveMarkStep,
+  from: number, to: number, mark: Mark,
+  target: (AddMarkStep | RemoveMarkStep)[]) {
+  let last = target.length ? target[target.length - 1] : null
+  if (last && last instanceof cls && last.to == from && last.mark.eq(mark)) {
+    target[target.length - 1] = new cls(last.from, to, mark)
+  } else {
+    target.push(new cls(from, to, mark))
+  }
+}
 
 class MarkSetStep extends Step {
   constructor(
