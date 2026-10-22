@@ -1,3 +1,9 @@
+## 1.12.4 (2026-10-22)
+
+### Bug fixes
+
+Fix broken deserialization of mark set steps.
+
 ## 1.12.3 (2026-10-22)
 
 ### Bug fixes
