@@ -1,3 +1,9 @@
+## 1.12.3 (2026-10-22)
+
+### Bug fixes
+
+Fix an issue that could make inverting a mapped `AddMarkStep` or `RemoveMarkStep` sometimes produce an inverse that didn't actually cancel out with the step itself.
+
 ## 1.12.2 (2026-09-25)
 
 ### Bug fixes
