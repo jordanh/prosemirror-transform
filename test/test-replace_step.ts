@@ -1,7 +1,7 @@
 import ist from "ist"
 import {Node, Slice, Fragment} from "prosemirror-model"
 import {doc, blockquote, p, schema, eq} from "prosemirror-test-builder"
-import {Transform, ReplaceAroundStep} from "prosemirror-transform"
+import {Transform, ReplaceAroundStep, Mapping, StepMap} from "prosemirror-transform"
 
 describe("ReplaceAroundStep", () => {
   it("verifies that the inserted content fits", () => {
@@ -18,6 +18,16 @@ describe("ReplaceAroundStep", () => {
   })
 
   describe("map", () => {
+    for (let pos of [0, 5]) it("drops a collapsed range mapped over an insertion at " + pos, () => {
+      let step = new ReplaceAroundStep(pos, pos, pos, pos, Slice.empty, 0, true)
+      let before = doc(p("abcd")), applied = step.apply(before)
+      ist(applied.failed, null)
+      ist(applied.doc, before, eq)
+      ist(step.invert(before).apply(applied.doc!).doc, before, eq)
+      let mapped = step.map(new Mapping([new StepMap([pos, 0, 10])]))
+      ist(mapped, null)
+    })
+
     function test(doc: Node, change: (tr: Transform) => void, otherChange: (tr: Transform) => void, expected: Node) {
       let trA = new Transform(doc), trB = new Transform(doc)
       change(trA)
