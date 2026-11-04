@@ -1,3 +1,13 @@
+## 1.12.5 (2026-11-04)
+
+### Bug fixes
+
+Make sure `ReplaceAroundStep`s are dropped when mapped through another change that deletes their gap range.
+
+Fix a crash in replace step fitting when an open slice is partially fitted.
+
+Fix a crash in replace fitting that could occur when inserting nodes open at both ends.
+
 ## 1.12.4 (2026-10-22)
 
 ### Bug fixes
