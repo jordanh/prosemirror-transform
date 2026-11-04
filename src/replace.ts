@@ -225,7 +225,7 @@ class Fitter {
     // Update `this.unplaced`. Drop the entire node from which we
     // placed it we got to its end, otherwise just drop the placed
     // nodes.
-    this.unplaced = !toEnd ? new Slice(dropFromFragment(slice.content, sliceDepth, taken), slice.openStart, slice.openEnd)
+    this.unplaced = !toEnd ? new Slice(dropFromFragment(slice.content, sliceDepth, taken), sliceDepth, slice.openEnd)
       : sliceDepth == 0 ? Slice.empty
       : new Slice(dropFromFragment(slice.content, sliceDepth - 1, 1),
                   sliceDepth - 1, openEndCount < 0 ? slice.openEnd : sliceDepth - 1)
