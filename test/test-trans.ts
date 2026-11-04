@@ -823,6 +823,22 @@ describe("Transform", () => {
       tr.replace(1, 1, new Slice(Fragment.from([schema.node("paragraph"), schema.text("xy")]), 0, 0))
       ist(tr.doc, tr.docs[0], eq)
     })
+
+    it("can extend the fitting frontier with nodes open at both sides", () => {
+      let schema = new Schema({nodes: {
+        doc: {content: "header+"},
+        header: {content: "title summary?"},
+        title: {content: "inline*"},
+        summary: {content: "inline*"},
+        text: {group: "inline"}
+      }})
+      let doc = schema.node("doc", null, [schema.node("header", null, [
+        schema.node("title", null, []),
+        schema.node("summary", null, [])
+      ])])
+      let tr = new Transform(doc).replace(4, 4, doc.slice(2, 4, true))
+      ist(tr.doc, schema.node("doc", null, [doc.firstChild!, doc.firstChild!]), eq)
+    })
   })
 
   describe("replaceRange", () => {

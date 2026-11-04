@@ -216,10 +216,9 @@ class Fitter {
       this.closeFrontierNode()
 
     // Add new frontier nodes for any open nodes at the end.
-    for (let i = 0, cur = fragment; i < openEndCount; i++) {
-      let node = cur.lastChild!
-      this.frontier.push({type: node.type, match: node.contentMatchAt(node.childCount)})
-      cur = node.content
+    for (let i = 0, cur: Node | null = add[add.length - 1]; cur && i < openEndCount; i++) {
+      this.frontier.push({type: cur.type, match: cur.contentMatchAt(cur.childCount)})
+      cur = cur.lastChild
     }
 
     // Update `this.unplaced`. Drop the entire node from which we
