@@ -82,4 +82,10 @@ describe("Mapping", () => {
     testDel(mk([2, 1, 0], [0, 1, 0]), 2, -1, "a")
     testDel(mk([3, 1, 0], [0, 2, 0]), 2, -1, "db")
   })
+
+  it("doesn't assign deleted flags for insertions", () => {
+    let map = mk([4, 0, 2])
+    ist(map.mapResult(4, -1).delInfo, 0)
+    ist(map.mapResult(4, 1).delInfo, 0)
+  })
 })

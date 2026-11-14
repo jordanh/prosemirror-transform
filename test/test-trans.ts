@@ -812,6 +812,33 @@ describe("Transform", () => {
       ist(new Transform(doc).replace(2, 3, new Slice(iso, 2, 2)).doc,
           s.node("doc", null, [s.node("paragraph", null, [s.text("otwoe")])]), eq)
     })
+
+    it("won't try to open a leaf node", () => {
+      let schema = new Schema({nodes: {
+        doc: {content: "block"},
+        paragraph: {content: "inline*", group: "block"},
+        text: {group: "inline"},
+      }})
+      let tr = new Transform(schema.node("doc", null, [schema.node("paragraph")]))
+      tr.replace(1, 1, new Slice(Fragment.from([schema.node("paragraph"), schema.text("xy")]), 0, 0))
+      ist(tr.doc, tr.docs[0], eq)
+    })
+
+    it("can extend the fitting frontier with nodes open at both sides", () => {
+      let schema = new Schema({nodes: {
+        doc: {content: "header+"},
+        header: {content: "title summary?"},
+        title: {content: "inline*"},
+        summary: {content: "inline*"},
+        text: {group: "inline"}
+      }})
+      let doc = schema.node("doc", null, [schema.node("header", null, [
+        schema.node("title", null, []),
+        schema.node("summary", null, [])
+      ])])
+      let tr = new Transform(doc).replace(4, 4, doc.slice(2, 4, true))
+      ist(tr.doc, schema.node("doc", null, [doc.firstChild!, doc.firstChild!]), eq)
+    })
   })
 
   describe("replaceRange", () => {
@@ -1084,5 +1111,21 @@ describe("Transform", () => {
       let tr = new Transform(doc(p("abcde"))).insert(6, schema.text("f")).delete(1, 4)
       ist(r(tr), "1-4")
     })
+  })
+
+  it("drops steps that produce invalid content", () => {
+    let schema = new Schema({nodes: {
+      doc: {content: "block+"},
+      paragraph: {group: "block", content: "inline*"},
+      heading: {group: "block", content: "text*"},
+      special: {group: "inline", inline: true},
+      text: {group: "inline"},
+    }})
+    let doc = schema.node("doc", null, [schema.node("paragraph", null, [schema.text("abc")])])
+
+    let tr1 = new Transform(doc).insert(2, schema.node("special"))
+    let tr2 = new Transform(doc).setBlockType(1, 4, schema.nodes.heading)
+    tr2.maybeStep(tr1.steps[0].map(tr2.mapping)!)
+    ist(tr2.steps.length, 1)
   })
 })

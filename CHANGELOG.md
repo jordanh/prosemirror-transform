@@ -1,3 +1,37 @@
+## 1.12.5 (2026-11-04)
+
+### Bug fixes
+
+Make sure `ReplaceAroundStep`s are dropped when mapped through another change that deletes their gap range.
+
+Fix a crash in replace step fitting when an open slice is partially fitted.
+
+Fix a crash in replace fitting that could occur when inserting nodes open at both ends.
+
+## 1.12.4 (2026-10-22)
+
+### Bug fixes
+
+Fix broken deserialization of mark set steps.
+
+## 1.12.3 (2026-10-22)
+
+### Bug fixes
+
+Fix an issue that could make inverting a mapped `AddMarkStep` or `RemoveMarkStep` sometimes produce an inverse that didn't actually cancel out with the step itself.
+
+## 1.12.2 (2026-09-25)
+
+### Bug fixes
+
+Fix a bug that caused `StepMap.mapResult` to set deletion flags for insertions adjacent to the mapped position.
+
+## 1.12.1 (2026-09-02)
+
+### Bug fixes
+
+Fix an issue where replace step fitting could create an invalid slice, and then crash or loop forever.
+
 ## 1.12.0 (2026-03-30)
 
 ### Bug fixes

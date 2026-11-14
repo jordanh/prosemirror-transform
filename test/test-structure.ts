@@ -1,5 +1,5 @@
-import {Schema, Slice, Node} from "prosemirror-model"
-import {canSplit, liftTarget, findWrapping, Transform} from "prosemirror-transform"
+import {Schema, Slice, Fragment, Node} from "prosemirror-model"
+import {canSplit, liftTarget, findWrapping, dropPoint, Transform} from "prosemirror-transform"
 import {eq, schema as baseSchema} from "prosemirror-test-builder"
 import ist from "ist"
 
@@ -82,6 +82,42 @@ describe("canSplit", () => {
       s.node("title", null, s.text("title")),
       s.node("scene", null, s.node("para", null, s.text("scene")))
     ])), 4, 1, [{type: s.nodes.scene}]))
+  })
+})
+
+describe("dropPoint", () => {
+  let para = new Slice(Fragment.from(n("para", t("x"))), 0, 0)
+
+  it("drops before a block when the cursor is in its first half", () => {
+    ist(dropPoint(doc, 8, para), 6)
+  })
+
+  it("drops after a section head that can't be preceded, instead of leaving the section", () => {
+    ist(dropPoint(doc, 16, para), 28)
+  })
+
+  it("keeps the near side when it fits", () => {
+    ist(dropPoint(doc, 25, para), 28)
+  })
+
+  it("nests a list item of another type after the line it is dropped on", () => {
+    let s = new Schema({
+      nodes: {
+        doc: {content: "block+"},
+        para: {content: "text*", group: "block"},
+        bullet_list: {content: "list_item+", group: "block"},
+        todo_list: {content: "todo_item+", group: "block"},
+        list_item: {content: "para block*"},
+        todo_item: {content: "para block*"},
+        text: {}
+      }
+    })
+    let d = s.node("doc", null, [s.node("bullet_list", null, [
+      s.node("list_item", null, [s.node("para", null, [s.text("First")])]),
+      s.node("list_item", null, [s.node("para", null, [s.text("Second")])])
+    ])])
+    let item = new Slice(Fragment.from(s.node("todo_item", null, [s.node("para", null, [s.text("x")])])), 0, 0)
+    ist(dropPoint(d, 13, item), 19)
   })
 })
 
