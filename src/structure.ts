@@ -333,16 +333,19 @@ export function dropPoint(doc: Node, pos: number, slice: Slice): number | null {
   for (let pass = 1; pass <= (slice.openStart == 0 && slice.size ? 2 : 1); pass++) {
     for (let d = $pos.depth; d >= 0; d--) {
       let bias = d == $pos.depth ? 0 : $pos.pos <= ($pos.start(d + 1) + $pos.end(d + 1)) / 2 ? -1 : 1
-      let insertPos = $pos.index(d) + (bias > 0 ? 1 : 0)
-      let parent = $pos.node(d), fits: boolean | null = false
-      if (pass == 1) {
-        fits = parent.canReplace(insertPos, insertPos, content)
-      } else {
-        let wrapping = parent.contentMatchAt(insertPos).findWrapping(content.firstChild!.type)
-        fits = wrapping && parent.canReplaceWith(insertPos, insertPos, wrapping[0])
+      // Try the other side of the child before moving up a level
+      for (let side of bias ? [bias, -bias] : [0]) {
+        let insertPos = $pos.index(d) + (side > 0 ? 1 : 0)
+        let parent = $pos.node(d), fits: boolean | null = false
+        if (pass == 1) {
+          fits = parent.canReplace(insertPos, insertPos, content)
+        } else {
+          let wrapping = parent.contentMatchAt(insertPos).findWrapping(content.firstChild!.type)
+          fits = wrapping && parent.canReplaceWith(insertPos, insertPos, wrapping[0])
+        }
+        if (fits)
+          return side == 0 ? $pos.pos : side < 0 ? $pos.before(d + 1) : $pos.after(d + 1)
       }
-      if (fits)
-        return bias == 0 ? $pos.pos : bias < 0 ? $pos.before(d + 1) : $pos.after(d + 1)
     }
   }
   return null
